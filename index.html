@@ -63,9 +63,9 @@
             <!-- Left: Calendar & Weekly -->
             <div class="lg:col-span-8 space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-                        <div id="calendar-header" class="flex justify-between items-center mb-3"></div>
-                        <div class="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 mb-1">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3">
+                        <div id="calendar-header" class="flex justify-between items-center mb-2"></div>
+                        <div class="grid grid-cols-7 text-center text-[9px] font-bold text-slate-400 mb-1">
                             <div>일</div>
                             <div>월</div>
                             <div>화</div>
@@ -74,15 +74,15 @@
                             <div>금</div>
                             <div>토</div>
                         </div>
-                        <div id="calendar-body" class="calendar-grid gap-1"></div>
+                        <div id="calendar-body" class="calendar-grid gap-0.5"></div>
                     </div>
-                    <div class="bg-blue-600 rounded-xl shadow-lg p-5 text-white flex flex-col justify-center">
-                        <h3 class="font-bold mb-2 text-sm flex items-center gap-2"><i class="fas fa-info-circle"></i> 이용
-                            안내</h3>
-                        <ul class="text-[11px] space-y-2 opacity-90 leading-relaxed">
+                    <div class="bg-blue-600 rounded-xl shadow-lg p-4 text-white flex flex-col justify-center">
+                        <h3 class="font-bold mb-1.5 text-xs flex items-center gap-2"><i class="fas fa-info-circle"></i>
+                            이용 안내</h3>
+                        <ul class="text-[10px] space-y-1 opacity-90 leading-snug">
                             <li>• 날짜 선택 후 우측에서 예약을 진행하세요.</li>
                             <li>• 학급 예약은 1학기 1, 4, 6학년 / 2학기 2, 3, 5학년 우선.</li>
-                            <li>• 문의사항은 2층 전담실 이성근 방문, 전화 또는 메신저로 연락주세요.</li>
+                            <li>• 문의: 2층 전담실 이성근 (방문, 전화, 메신저)</li>
                         </ul>
                     </div>
                 </div>
@@ -365,7 +365,7 @@
                 const isH = date.getDay() === 0 || date.getDay() === 6 || state.holidays.some(h => h.date === ds);
                 const hasR = state.reservations.some(r => r.date === ds);
                 const btn = document.createElement('button');
-                btn.className = `aspect-square rounded-lg text-xs flex flex-col items-center justify-center transition-all ${isS ? 'bg-blue-600 text-white shadow shadow-blue-200 z-10 scale-105' : 'hover:bg-slate-50'} ${isH && !isS ? 'text-red-400' : ''}`;
+                btn.className = `aspect-[1/0.8] rounded-md text-[10px] flex flex-col items-center justify-center transition-all ${isS ? 'bg-blue-600 text-white shadow shadow-blue-200 z-10 scale-105' : 'hover:bg-slate-50'} ${isH && !isS ? 'text-red-400' : ''}`;
                 btn.onclick = () => { state.selectedDate = date; renderAll(); };
                 btn.innerHTML = `<span>${d}</span>${hasR && !isS ? '<div class="w-1 h-1 bg-blue-400 rounded-full mt-0.5"></div>' : ''}`;
                 body.appendChild(btn);
