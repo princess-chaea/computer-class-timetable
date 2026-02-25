@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700&display=swap');
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+        }
+
+        .weekly-grid {
+            display: grid;
+            grid-template-columns: 50px repeat(5, 1fr);
+        }
+
+        .loader {
+            border-top-color: #3b82f6;
+            animation: spinner 1.2s linear infinite;
+        }
+
+        @keyframes spinner {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .weekly-cell {
+            min-height: 55px;
+            font-size: 0.7rem;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-800 p-2 md:p-4">
+    <div id="app" class="max-w-[1400px] mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-4 px-2">
+            <h1 class="text-xl font-bold text-blue-800 flex items-center gap-2">
+                <i class="fas fa-desktop bg-blue-600 text-white p-1.5 rounded text-xs"></i>
+                하주초 컴퓨터실 예약
+            </h1>
+            <button onclick="handleAdminLogin()"
+                class="text-xs px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                <i class="fas fa-lock mr-1"></i> 관리자
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <!-- Left: Calendar & Weekly -->
+            <div class="lg:col-span-8 space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                        <div id="calendar-header" class="flex justify-between items-center mb-3"></div>
+                        <div class="grid grid-cols-7 text-center text-[10px] font-bold text-slate-400 mb-1">
+                            <div>일</div>
+                            <div>월</div>
+                            <div>화</div>
+                            <div>수</div>
+                            <div>목</div>
+                            <div>금</div>
+                            <div>토</div>
+                        </div>
+                        <div id="calendar-body" class="calendar-grid gap-1"></div>
+                    </div>
+                    <div class="bg-blue-600 rounded-xl shadow-lg p-5 text-white flex flex-col justify-center">
+                        <h3 class="font-bold mb-2 text-sm flex items-center gap-2"><i class="fas fa-info-circle"></i> 이용
+                            안내</h3>
+                        <ul class="text-[11px] space-y-2 opacity-90 leading-relaxed">
+                            <li>• 날짜 선택 후 우측에서 예약을 진행하세요.</li>
+                            <li>• 고정 수업은 관리자 설정에서 학년/반을 입력하세요.</li>
+                            <li>• 시트 연동 오류 발생 시 페이지를 새로고침 해주세요.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                    <h3 class="font-bold text-sm mb-3 flex items-center gap-2 text-slate-600">
+                        <i class="fas fa-th-list text-blue-500"></i> 주간 예약 현황 (월-금)
+                    </h3>
+                    <div class="w-full">
+                        <div class="weekly-grid border-t border-l border-slate-100">
+                            <div
+                                class="bg-slate-50 p-2 border-r border-b border-slate-100 text-[10px] font-bold text-center">
+                                교시</div>
+                            <div
+                                class="bg-slate-50 p-2 border-r border-b border-slate-100 text-[10px] font-bold text-center">
+                                월</div>
+                            <div
+                                class="bg-slate-50 p-2 border-r border-b border-slate-100 text-[10px] font-bold text-center">
+                                화</div>
+                            <div
+                                class="bg-slate-50 p-2 border-r border-b border-slate-100 text-[10px] font-bold text-center">
+                                수</div>
+                            <div
+                                class="bg-slate-50 p-2 border-r border-b border-slate-100 text-[10px] font-bold text-center">
+                                목</div>
+                            <div
+                                class="bg-slate-50 p-2 border-r border-b border-slate-100 text-[10px] font-bold text-center">
+                                금</div>
+                            <div id="weekly-body" class="contents"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Day Detail -->
+            <div class="lg:col-span-4">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 h-full flex flex-col sticky top-4">
+                    <div id="day-header"
+                        class="p-4 border-b border-slate-100 bg-slate-50/80 flex justify-between items-center"></div>
+                    <div id="day-schedule" class="flex-1 divide-y divide-slate-50 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading"
+        class="hidden fixed inset-0 bg-white/70 backdrop-blur-[1px] z-[100] flex flex-col items-center justify-center">
+        <div class="loader ease-linear rounded-full border-4 border-gray-100 h-10 w-10 mb-3"></div>
+        <p class="text-slate-500 text-xs font-medium">데이터 동기화 중...</p>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="admin-login-modal" class="hidden fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-xs overflow-hidden shadow-2xl">
+            <div class="p-4 bg-slate-800 text-white text-center font-bold">관리자 인증</div>
+            <div class="p-5 space-y-3">
+                <input type="password" id="admin-pw-input" placeholder="비밀번호"
+                    class="w-full border rounded-lg px-4 py-2 text-center text-xl outline-none focus:ring-2 ring-blue-500">
+                <div class="flex gap-2">
+                    <button onclick="closeModal('admin-login-modal')"
+                        class="flex-1 py-2 text-sm border rounded-lg">닫기</button>
+                    <button onclick="checkAdminPassword()"
+                        class="flex-1 py-2 text-sm bg-slate-800 text-white rounded-lg">확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fixed Class Modal -->
+    <div id="fixed-modal" class="hidden fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-sm shadow-2xl">
+            <div class="p-4 bg-orange-500 text-white flex justify-between items-center font-bold">
+                <h3>고정 수업 설정</h3>
+                <button onclick="closeModal('fixed-modal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <p id="fixed-modal-info" class="text-xs font-bold text-orange-600"></p>
+                <input type="text" id="fixed-grade" placeholder="학년-반 (예: 5-1)"
+                    class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-orange-400">
+                <input type="text" id="fixed-content" placeholder="수업 내용 (예: 실과 정보)"
+                    class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-orange-400">
+                <div class="flex gap-2">
+                    <button id="fixed-delete-btn" onclick="deleteFixedClass()"
+                        class="hidden flex-1 py-2 text-sm bg-red-50 text-red-600 rounded-lg border border-red-100">삭제</button>
+                    <button onclick="saveFixedClass()"
+                        class="flex-1 py-2 text-sm bg-orange-500 text-white rounded-lg font-bold">저장</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservation Modal -->
+    <div id="reserve-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-sm overflow-hidden shadow-2xl">
+            <div class="p-4 bg-blue-600 text-white flex justify-between items-center font-bold">
+                <h3>예약 신청</h3>
+                <button onclick="closeModal('reserve-modal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-5 space-y-3">
+                <p id="reserve-info" class="text-xs font-bold text-blue-600"></p>
+                <div class="flex gap-2">
+                    <select id="reg-grade"
+                        class="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-blue-500">
+                        <option value="">학년</option>
+                        <option value="1">1학년</option>
+                        <option value="2">2학년</option>
+                        <option value="3">3학년</option>
+                        <option value="4">4학년</option>
+                        <option value="5">5학년</option>
+                        <option value="6">6학년</option>
+                    </select>
+                    <input type="number" id="reg-class" placeholder="반"
+                        class="flex-1 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-blue-500">
+                </div>
+                <input type="password" id="reg-pw" placeholder="취소 비밀번호"
+                    class="w-full border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 ring-blue-500">
+                <button onclick="submitReservation()"
+                    class="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg text-sm shadow-md transition hover:bg-blue-700">예약
+                    완료</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Confirmation Modal -->
+    <div id="confirm-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-sm shadow-2xl p-5">
+            <div class="text-red-500 font-bold mb-2 flex items-center gap-2"><i class="fas fa-exclamation-triangle"></i>
+                예약 취소</div>
+            <p class="text-[11px] text-slate-500 mb-4">예약 시 입력한 비밀번호를 입력해 주세요.</p>
+            <input type="password" id="confirm-pw"
+                class="w-full border rounded-lg px-3 py-2 text-center text-lg outline-none focus:ring-2 ring-red-400 mb-4">
+            <div class="flex gap-2">
+                <button onclick="closeModal('confirm-modal')" class="flex-1 py-2 text-sm border rounded-lg">닫기</button>
+                <button onclick="executeCancel()"
+                    class="flex-1 py-2 text-sm bg-red-500 text-white rounded-lg">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Admin Modal -->
+    <div id="admin-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2">
+        <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div class="p-4 bg-slate-800 text-white flex justify-between items-center font-bold">
+                <h3>관리자 설정</h3>
+                <button onclick="closeModal('admin-modal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-bold mb-2 text-xs text-slate-500 tracking-wider">주간 고정 수업 설정</h4>
+                    <div class="grid grid-cols-6 gap-1 text-[9px] text-center border p-1.5 rounded-lg bg-slate-50">
+                        <div class="font-bold py-1">교시</div>
+                        <div class="font-bold py-1">월</div>
+                        <div class="font-bold py-1">화</div>
+                        <div class="font-bold py-1">수</div>
+                        <div class="font-bold py-1">목</div>
+                        <div class="font-bold py-1">금</div>
+                        <div id="fixed-grid-container" class="contents"></div>
+                    </div>
+                    <p class="text-[9px] text-slate-400 mt-2">* 각 칸을 클릭하여 학년/반과 수업 내용을 등록하세요.</p>
+                </div>
+                <div>
+                    <h4 class="font-bold mb-2 text-xs text-slate-500 tracking-wider">공휴일/방학 관리</h4>
+                    <div class="flex gap-2 mb-3">
+                        <input type="date" id="new-holiday" class="flex-1 border rounded-lg px-3 py-1.5 text-xs">
+                        <button onclick="addNewHoliday()"
+                            class="w-full bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-red-600 transition">휴일
+                            범위 추가</button>
+                    </div>
+                    <div id="holiday-list" class="space-y-1.5 h-40 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /** COMMUNICATION LAYER (FETCH API) **/
+        // 구글 앱스 스크립트에서 실행 시 자동으로 URL 주입, 버셀 등 외부 배포 시 아래 공백에 URL 직접 입력
+        let SCRIPT_URL = '<?= scriptUrl ?>';
+        if (SCRIPT_URL.startsWith('<' + '?=') || SCRIPT_URL === '') {
+            SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxse5M3LJGFWMTXtHQoefxZPT_8isSu3xDJGZqPJAhoZHoDHwhdwA-U7ROK2d4nheXG/exec';
+        }
+
+        async function callServer(action, payload = null) {
+            const isGet = !payload;
+            const url = isGet ? `${SCRIPT_URL}?action=${action}` : SCRIPT_URL;
+            const options = {
+                method: isGet ? 'GET' : 'POST',
+                redirect: 'follow'
+            };
+            if (!isGet) {
+                options.body = JSON.stringify({ action, payload });
+                options.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+            }
+
+            try {
+                const response = await fetch(url, options);
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                return await response.json();
+            } catch (e) {
+                console.error("fetch Error:", e);
+                throw e;
+            }
+        }
+
+        let state = { reservations: [], fixedClasses: [], holidays: [], selectedDate: new Date(), currentCalDate: new Date(), pendingCancelId: null };
+        const DAYS_KR = ['일', '월', '화', '수', '목', '금', '토'];
+
+        function init() { fetchData(); }
+
+        function syncState(data) {
+            console.log("Data sync from server:", data);
+            if (!data) {
+                console.error("No data received from server.");
+                const isMultiLogin = window.location.href.includes('/u/');
+                let advice = "서버로부터 데이터를 받지 못했습니다.\n\n";
+                if (isMultiLogin) {
+                    advice += "⚠️ 현재 여러 구글 계정에 로그인되어 있는 것 같습니다.\n1. 모든 구글 계정 로그아웃 후 다시 로그인하시거나\n2. '시크릿 창(Incognito)'에서 접속해 보세요.";
+                } else {
+                    advice += "1. 시트 파일의 [확장 프로그램] > [Apps Script]를 열어 '저장' 버튼을 눌렀는지 확인하세요.\n2. [배포] > [배포 관리]에서 최신 버전으로 배포되었는지 확인하세요.\n3. 페이지를 새로고침(Ctrl+F5) 해보세요.";
+                }
+                alert(advice);
+                showLoading(false);
+                return;
+            }
+            if (data.isError || data.error) {
+                console.error("Server Side Error:", data.error);
+                alert("서버 오류: " + (data.error || "알 수 없는 오류가 발생했습니다."));
+                showLoading(false);
+                return;
+            }
+            state.reservations = data.reservations || [];
+            state.fixedClasses = data.fixedClasses || [];
+            state.holidays = data.holidays || [];
+            console.log("Current State:", state);
+            renderAll();
+            showLoading(false);
+        }
+
+        async function fetchData() {
+            showLoading(true);
+            try {
+                const data = await callServer('getAllData');
+                syncState(data);
+            } catch (e) {
+                console.error("Fetch Error Detail:", e);
+                let msg = "데이터를 가져오는 중 연결 오류가 발생했습니다.";
+                msg += "\n사유: " + e.message;
+                alert(msg + "\n\n(구글 로그인이 되어 있는지, 시트에 권한이 있는지 확인해 주세요.)");
+                showLoading(false);
+            }
+        }
+
+        function renderAll() {
+            renderCalendar(); renderDaySchedule(); renderWeeklyView(); renderAdminFixedGrid(); renderHolidayList();
+        }
+
+        function renderCalendar() {
+            const year = state.currentCalDate.getFullYear();
+            const month = state.currentCalDate.getMonth();
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            document.getElementById('calendar-header').innerHTML = `<h2 class="font-bold text-sm">${year}년 ${month + 1}월</h2><div class="flex gap-1"><button onclick="changeMonth(-1)" class="p-1.5 hover:bg-slate-100 rounded-lg"><i class="fas fa-chevron-left text-[10px]"></i></button><button onclick="changeMonth(1)" class="p-1.5 hover:bg-slate-100 rounded-lg"><i class="fas fa-chevron-right text-[10px]"></i></button></div>`;
+            const body = document.getElementById('calendar-body');
+            body.innerHTML = '';
+            for (let i = 0; i < firstDay; i++) body.appendChild(document.createElement('div'));
+            for (let d = 1; d <= lastDate; d++) {
+                const date = new Date(year, month, d);
+                const ds = formatDate(date);
+                const isS = formatDate(state.selectedDate) === ds;
+                const isH = date.getDay() === 0 || date.getDay() === 6 || state.holidays.some(h => h.date === ds);
+                const hasR = state.reservations.some(r => r.date === ds);
+                const btn = document.createElement('button');
+                btn.className = `aspect-square rounded-lg text-xs flex flex-col items-center justify-center transition-all ${isS ? 'bg-blue-600 text-white shadow shadow-blue-200 z-10 scale-105' : 'hover:bg-slate-50'} ${isH && !isS ? 'text-red-400' : ''}`;
+                btn.onclick = () => { state.selectedDate = date; renderAll(); };
+                btn.innerHTML = `<span>${d}</span>${hasR && !isS ? '<div class="w-1 h-1 bg-blue-400 rounded-full mt-0.5"></div>' : ''}`;
+                body.appendChild(btn);
+            }
+        }
+
+        function renderDaySchedule() {
+            const ds = formatDate(state.selectedDate);
+            const isH = state.selectedDate.getDay() === 0 || state.selectedDate.getDay() === 6 || state.holidays.some(h => h.date === ds);
+            document.getElementById('day-header').innerHTML = `<div class="flex items-center gap-2"><div class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shadow-sm">${state.selectedDate.getDate()}</div><div><h3 class="font-bold text-xs">${DAYS_KR[state.selectedDate.getDay()]}요일</h3><p class="text-[9px] text-slate-400">${ds}</p></div></div>${isH ? '<span class="text-[9px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">휴무</span>' : ''}`;
+            const schedule = document.getElementById('day-schedule');
+            schedule.innerHTML = '';
+            for (let p = 1; p <= 8; p++) {
+                const res = state.reservations.find(r => r.date === ds && r.period == p);
+                const fixed = state.fixedClasses.find(f => f.dayOfWeek == state.selectedDate.getDay() && f.period == p);
+                const row = document.createElement('div');
+                row.className = `p-3 flex items-center gap-3 ${res ? 'bg-blue-50/20' : ''}`;
+                let content = `<div class="w-10 text-center text-[10px] text-slate-400 font-bold">${p}교시</div>`;
+                if (fixed) content += `<div class="flex-1"><div class="text-orange-600 font-bold text-xs"><i class="fas fa-lock mr-1"></i>${fixed.grade || '고정 수업'}</div><div class="text-[9px] text-slate-400">${fixed.content || ''}</div></div>`;
+                else if (res) content += `<div class="flex-1 flex justify-between items-center"><div><span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold mr-1.5">${res.grade}학년 ${res.classNum}반</span></div><button onclick="requestCancel('${res.id}')" class="text-slate-200 hover:text-red-500 transition px-2"><i class="fas fa-trash-alt text-xs"></i></button></div>`;
+                else if (isH) content += `<div class="flex-1 text-slate-300 text-[10px] italic">예약 불가</div>`;
+                else content += `<div class="flex-1 text-slate-300 text-[10px] italic font-light">비어 있음</div><button onclick="openReserveModal(${p})" class="w-7 h-7 rounded-lg border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition flex items-center justify-center shadow-sm"><i class="fas fa-plus text-xs"></i></button>`;
+                row.innerHTML = content;
+                schedule.appendChild(row);
+            }
+        }
+
+        function renderWeeklyView() {
+            const container = document.getElementById('weekly-body'); container.innerHTML = '';
+            const curr = new Date(state.selectedDate); const day = curr.getDay();
+            const diff = curr.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(curr.setDate(diff));
+
+            // 주간 헤더 날짜 업데이트
+            const headerDays = ['월', '화', '수', '목', '금'];
+            const headerContainer = document.querySelector('.weekly-grid');
+            if (headerContainer) {
+                const headerCells = headerContainer.querySelectorAll('div:nth-child(n+2):nth-child(-n+6)');
+                headerCells.forEach((cell, i) => {
+                    const d = new Date(monday); d.setDate(monday.getDate() + i);
+                    cell.innerHTML = `${headerDays[i]}<br><span class="text-[8px] font-normal opacity-60">${d.getMonth() + 1}/${d.getDate()}</span>`;
+                });
+            }
+
+            for (let p = 1; p <= 8; p++) {
+                const pl = document.createElement('div'); pl.className = 'border-r border-b border-slate-100 p-2 text-center text-[10px] font-bold bg-slate-50 text-slate-400 flex items-center justify-center'; pl.innerText = p; container.appendChild(pl);
+                for (let d = 0; d < 5; d++) {
+                    const date = new Date(monday); date.setDate(monday.getDate() + d); const ds = formatDate(date);
+                    const res = state.reservations.find(r => r.date === ds && r.period == p);
+                    const fixed = state.fixedClasses.find(f => f.dayOfWeek == (d + 1) && f.period == p);
+                    const isH = state.holidays.some(h => h.date === ds);
+                    const cell = document.createElement('div'); cell.className = 'border-r border-b border-slate-100 p-0.5 weekly-cell flex items-center justify-center overflow-hidden';
+
+                    if (fixed) cell.innerHTML = `<div class="w-full h-full bg-orange-100 rounded text-[9px] text-orange-700 font-bold flex flex-col items-center justify-center text-center p-0.5 shadow-sm border border-orange-200 leading-tight"><div>${fixed.grade || ''}</div><div class="font-normal text-[7px] opacity-70 truncate w-full">${fixed.content || ''}</div></div>`;
+                    else if (res) cell.innerHTML = `<div class="bg-blue-500 text-white text-[9px] w-full h-full rounded flex items-center justify-center font-bold text-center leading-tight shadow-sm">${res.grade}-${res.classNum}</div>`;
+                    else if (isH) cell.innerHTML = '<div class="w-full h-full bg-red-50/50 rounded"></div>';
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function renderAdminFixedGrid() {
+            const container = document.getElementById('fixed-grid-container'); container.innerHTML = '';
+            for (let p = 1; p <= 8; p++) {
+                const l = document.createElement('div'); l.className = 'bg-white py-2 font-bold border-b text-slate-400 flex items-center justify-center'; l.innerText = p; container.appendChild(l);
+                for (let d = 1; d <= 5; d++) {
+                    const f = state.fixedClasses.find(fixed => fixed.dayOfWeek == d && fixed.period == p);
+                    const btn = document.createElement('button');
+                    btn.className = `p-1 border-b h-12 transition overflow-hidden text-[9px] ${f ? 'bg-orange-500 text-white font-bold' : 'bg-white hover:bg-orange-50 text-slate-200'}`;
+                    btn.onclick = () => openFixedModal(d, p);
+                    btn.innerHTML = f ? `<div class="truncate">${f.grade || ''}</div><div class="text-[7px] font-normal opacity-80 truncate">${f.content || ''}</div>` : `<i class="fas fa-plus opacity-10"></i>`;
+                    container.appendChild(btn);
+                }
+            }
+        }
+
+        function renderHolidayList() {
+            const list = document.getElementById('holiday-list'); list.innerHTML = '';
+            state.holidays.sort((a, b) => a.date.localeCompare(b.date)).forEach(h => {
+                const item = document.createElement('div'); item.className = 'flex justify-between items-center p-2 bg-slate-50 rounded-lg text-xs border border-slate-100 shadow-sm';
+                item.innerHTML = `<span>${h.date}</span><button onclick="deleteHoliday('${h.date}')" class="text-slate-300 hover:text-red-500 transition px-2"><i class="fas fa-times"></i></button>`;
+                list.appendChild(item);
+            });
+        }
+
+        function handleAdminLogin() { document.getElementById('admin-pw-input').value = ''; document.getElementById('admin-login-modal').classList.remove('hidden'); document.getElementById('admin-pw-input').focus(); }
+        function checkAdminPassword() { if (document.getElementById('admin-pw-input').value === '6699') { closeModal('admin-login-modal'); document.getElementById('admin-modal').classList.remove('hidden'); } else alert("비밀번호가 틀렸습니다."); }
+        function openFixedModal(d, p) {
+            const f = state.fixedClasses.find(fixed => fixed.dayOfWeek == d && fixed.period == p);
+            document.getElementById('fixed-modal-info').innerText = `${DAYS_KR[d]}요일 ${p}교시`;
+            document.getElementById('fixed-modal').dataset.day = d; document.getElementById('fixed-modal').dataset.period = p;
+            document.getElementById('fixed-grade').value = f ? f.grade : ''; document.getElementById('fixed-content').value = f ? f.content : '';
+            document.getElementById('fixed-delete-btn').classList.toggle('hidden', !f); document.getElementById('fixed-modal').classList.remove('hidden');
+        }
+        async function saveFixedClass() {
+            const g = document.getElementById('fixed-grade').value; if (!g) return alert("학년/반을 입력하세요.");
+            showLoading(true);
+            try {
+                const data = await callServer('updateFixedClass', {
+                    day: document.getElementById('fixed-modal').dataset.day,
+                    period: document.getElementById('fixed-modal').dataset.period,
+                    grade: g,
+                    content: document.getElementById('fixed-content').value
+                });
+                syncState(data);
+                closeModal('fixed-modal');
+            } catch (e) { alert(e); showLoading(false); }
+        }
+        async function deleteFixedClass() {
+            showLoading(true);
+            try {
+                const data = await callServer('updateFixedClass', {
+                    day: document.getElementById('fixed-modal').dataset.day,
+                    period: document.getElementById('fixed-modal').dataset.period,
+                    grade: "",
+                    content: ""
+                });
+                syncState(data);
+                closeModal('fixed-modal');
+            } catch (e) { alert(e); showLoading(false); }
+        }
+        function changeMonth(delta) { state.currentCalDate.setMonth(state.currentCalDate.getMonth() + delta); renderCalendar(); }
+        function openReserveModal(p) { document.getElementById('reserve-info').innerText = `${formatDate(state.selectedDate)} / ${p}교시`; document.getElementById('reserve-modal').dataset.period = p; document.getElementById('reserve-modal').classList.remove('hidden'); }
+        async function submitReservation() {
+            const p = document.getElementById('reserve-modal').dataset.period; const g = document.getElementById('reg-grade').value; const c = document.getElementById('reg-class').value; const pw = document.getElementById('reg-pw').value;
+            if (!g || !c || !pw) return alert("모든 항목을 입력하세요.");
+            showLoading(true);
+            try {
+                const data = await callServer('addReservation', { date: formatDate(state.selectedDate), period: p, grade: g, classNum: c, password: pw });
+                syncState(data);
+                closeModal('reserve-modal');
+            } catch (e) { alert(e); showLoading(false); }
+        }
+        function requestCancel(id) { state.pendingCancelId = id; document.getElementById('confirm-pw').value = ''; document.getElementById('confirm-modal').classList.remove('hidden'); }
+        async function executeCancel() {
+            const pw = document.getElementById('confirm-pw').value; if (!pw) return;
+            showLoading(true);
+            try {
+                const data = await callServer('deleteReservation', { id: state.pendingCancelId, password: pw });
+                syncState(data);
+                closeModal('confirm-modal');
+            } catch (e) { alert(e); showLoading(false); }
+        }
+        async function addNewHoliday() {
+            const start = document.getElementById('new-holiday-start').value;
+            const end = document.getElementById('new-holiday-end').value;
+            if (!start) return alert("시작일을 선택해 주세요.");
+
+            showLoading(true);
+            try {
+                const data = await callServer('addHoliday', { startDate: start, endDate: end });
+                syncState(data);
+                document.getElementById('new-holiday-start').value = '';
+                document.getElementById('new-holiday-end').value = '';
+            } catch (e) { alert(e); showLoading(false); }
+        }
+        async function deleteHoliday(d) {
+            showLoading(true);
+            try {
+                const data = await callServer('removeHoliday', { date: d });
+                syncState(data);
+            } catch (e) { alert(e); showLoading(false); }
+        }
+        function formatDate(d) {
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        function showLoading(s) { document.getElementById('loading').classList.toggle('hidden', !s); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        window.onload = init;
+    </script>
+</body>
+
+</html>
