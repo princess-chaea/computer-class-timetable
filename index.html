@@ -246,8 +246,17 @@
                 </div>
                 <div>
                     <h4 class="font-bold mb-2 text-xs text-slate-500 tracking-wider">공휴일/방학 관리</h4>
-                    <div class="flex gap-2 mb-3">
-                        <input type="date" id="new-holiday" class="flex-1 border rounded-lg px-3 py-1.5 text-xs">
+                    <div class="space-y-2 mb-3">
+                        <div class="flex gap-2">
+                            <span class="text-[9px] text-slate-400 w-12 pt-2">시작일</span>
+                            <input type="date" id="new-holiday-start"
+                                class="flex-1 border rounded-lg px-3 py-1.5 text-xs">
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="text-[9px] text-slate-400 w-12 pt-2">종료일</span>
+                            <input type="date" id="new-holiday-end"
+                                class="flex-1 border rounded-lg px-3 py-1.5 text-xs">
+                        </div>
                         <button onclick="addNewHoliday()"
                             class="w-full bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm hover:bg-red-600 transition">휴일
                             범위 추가</button>
