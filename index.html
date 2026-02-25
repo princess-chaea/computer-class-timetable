@@ -41,6 +41,13 @@
         .weekly-cell {
             min-height: 55px;
             font-size: 0.7rem;
+            transition: all 0.2s;
+        }
+
+        .weekly-cell.reservable:hover {
+            background-color: #f1f5f9;
+            cursor: pointer;
+            box-shadow: inset 0 0 0 2px #3b82f6;
         }
     </style>
 </head>
@@ -390,9 +397,9 @@
                 const row = document.createElement('div');
                 row.className = `p-3 flex items-center gap-3 ${res ? 'bg-blue-50/20' : ''}`;
                 let content = `<div class="w-10 text-center text-[10px] text-slate-400 font-bold">${p}교시</div>`;
-                if (fixed) content += `<div class="flex-1"><div class="text-orange-600 font-bold text-xs"><i class="fas fa-lock mr-1"></i>${fixed.grade || '고정 수업'}</div><div class="text-[9px] text-slate-400">${fixed.content || ''}</div></div>`;
+                if (isH) content += `<div class="flex-1 text-slate-300 text-[10px] italic">휴교일 (예약 불가)</div>`;
+                else if (fixed) content += `<div class="flex-1"><div class="text-orange-600 font-bold text-xs"><i class="fas fa-lock mr-1"></i>${fixed.grade || '고정 수업'}</div><div class="text-[9px] text-slate-400">${fixed.content || ''}</div></div>`;
                 else if (res) content += `<div class="flex-1 flex justify-between items-center"><div><span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold mr-1.5">${res.grade}학년 ${res.classNum}반</span></div><button onclick="requestCancel('${res.id}')" class="text-slate-200 hover:text-red-500 transition px-2"><i class="fas fa-trash-alt text-xs"></i></button></div>`;
-                else if (isH) content += `<div class="flex-1 text-slate-300 text-[10px] italic">예약 불가</div>`;
                 else content += `<div class="flex-1 text-slate-300 text-[10px] italic font-light">비어 있음</div><button onclick="openReserveModal(${p})" class="w-7 h-7 rounded-lg border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white transition flex items-center justify-center shadow-sm"><i class="fas fa-plus text-xs"></i></button>`;
                 row.innerHTML = content;
                 schedule.appendChild(row);
@@ -425,9 +432,22 @@
                     const isH = state.holidays.some(h => h.date === ds);
                     const cell = document.createElement('div'); cell.className = 'border-r border-b border-slate-100 p-0.5 weekly-cell flex items-center justify-center overflow-hidden';
 
-                    if (fixed) cell.innerHTML = `<div class="w-full h-full bg-orange-100 rounded text-[9px] text-orange-700 font-bold flex flex-col items-center justify-center text-center p-0.5 shadow-sm border border-orange-200 leading-tight"><div>${fixed.grade || ''}</div><div class="font-normal text-[7px] opacity-70 truncate w-full">${fixed.content || ''}</div></div>`;
-                    else if (res) cell.innerHTML = `<div class="bg-blue-500 text-white text-[9px] w-full h-full rounded flex items-center justify-center font-bold text-center leading-tight shadow-sm">${res.grade}-${res.classNum}</div>`;
-                    else if (isH) cell.innerHTML = '<div class="w-full h-full bg-red-50/50 rounded"></div>';
+                    if (isH) {
+                        cell.innerHTML = '<div class="w-full h-full bg-slate-100 rounded border border-slate-200 flex items-center justify-center text-[7px] text-slate-300 font-bold">휴무</div>';
+                    } else if (fixed) {
+                        cell.innerHTML = `<div class="w-full h-full bg-orange-100 rounded text-[9px] text-orange-700 font-bold flex flex-col items-center justify-center text-center p-0.5 shadow-sm border border-orange-200 leading-tight"><div>${fixed.grade || ''}</div><div class="font-normal text-[7px] opacity-70 truncate w-full">${fixed.content || ''}</div></div>`;
+                    } else if (res) {
+                        cell.innerHTML = `<div class="bg-blue-500 text-white text-[9px] w-full h-full rounded flex items-center justify-center font-bold text-center leading-tight shadow-sm">${res.grade}-${res.classNum}</div>`;
+                    } else {
+                        // 빈 칸은 예약 가능하도록 설정
+                        cell.classList.add('reservable');
+                        cell.title = `${ds} / ${p}교시 예약하기`;
+                        cell.onclick = () => {
+                            state.selectedDate = new Date(date);
+                            renderAll();
+                            openReserveModal(p);
+                        };
+                    }
                     container.appendChild(cell);
                 }
             }
